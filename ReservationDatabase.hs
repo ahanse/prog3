@@ -8,9 +8,11 @@ module ReservationDatabase (StationId, TrainId,
                             deleteTrain,
                             ReservationInfo(..),
                             listReservations,
-                            listReservationsFor) where
+                            listReservationsFor,
+                            deleteReservation) where
 
-import Data.Map hiding (map)
+import Data.Map hiding (map, filter)
+import Data.Set hiding (map, filter)
 import qualified Data.Foldable as GenFold
 
 type StationId = Integer
@@ -76,13 +78,42 @@ listReservations id (s,t)
                                     ((sidn.snd.stations) v) in
         Just $ map nri rl   
 listReservationsFor :: TrainId -> Integer -> Integer -> Database -> Maybe [ReservationInfo]
-listReservationsFor id car seat d  
+listReservationsFor id car seat d = 
     let r = listReservations id d 
         is (ReservationInfo _ rc gs ss _ _) = 
             (rc == car && ss <= seat && (ss+gs)>=seat) in
-    case r of
-        Nothing -> Nothing
-        Just l -> filter is l
+    r >>= (\l -> Just $ filter is l)
+
 deleteReservation :: TrainId -> Integer -> Database -> Database
 deleteReservation id n (s,t) = 
-    let update 
+    let rm l i = let (ys,zs) = splitAt (fromIntegral i) l in ys ++ (tail zs)
+        adj t = Train {trainName = (trainName t),
+                       minFreeSeats = (minFreeSeats t),
+                       route = (route t),
+                       railCarSizes = (railCarSizes t),
+                       reservations = rm (reservations t) n}
+    in
+        (s, adjust adj id t)
+
+
+-- helper functions
+
+freeSeats :: [Reservation] -> Train -> [Integer] -> (StationId, StationId) -> [Set Integer]
+freeSeats rl csl travelRoute = 
+    ...
+    where
+        trainRoute = route Train 
+        relRl = filter (\r -> routesDisjunct trainRoute (route r) travelRoute) rl
+        fullSet = map (fromList.((flip take) [1..])) csl
+
+routesDisjunct :: [StationId] -> (StationId, StationId) -> (StationId, StationId) -> Bool
+routesDisjunct l r1 r2 = 
+    let helper True (h:t) r1@(r1s, r1e) r2@(r2s, r2e)  
+            | h==r1s || h==r2s = True
+            | h==r1e || h==r2e = helper False t r1 r2
+            | otherwise = helper True t r1 r2
+        helper False (h:t) r1@(r1s, r1e) r2@(r2s, r2e) 
+            | h==r1s || h==r2s = helper True t r1 r2
+            | otherwise = helper False t r1 r2 
+    in
+        helper False l r1 r2

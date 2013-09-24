@@ -48,43 +48,30 @@ helpStrings = map ("  "++) ["exit\t\tLeaves the reservation manager.",
 
 dispatchCommands "help" _ _ d = putStrLn "Available commands:" >> mapM_ putStrLn helpStrings >> return d
 dispatchCommands "save" _ f d = putStrLn "Saving..." >> saveDb f d >> return d
-dispatchCommands "createStation" arg _ d = do
-    res <- try $ readIO arg
-    case res of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right (name, id) -> do
-           return $ fromMaybe d $ createStation name id d
+dispatchCommands "createStation" arg _ d =
+    let f (name, id) = return $ fromMaybe d $ createStation name id d
+    in
+        readOrError arg d f
 dispatchCommands "listStations" _ _ d@(s, _) = do
     putStrLn "Id\tStation Name"
     putStrLn "-------------------------"
-    let ff = \a k v->a >> (printf "%d\t\t%s\n" k  (stationName v))
+    let ff = \a k v->a >> (printf "%d\t%s\n" k  (stationName v))
     foldlWithKey ff (return ())  s
     return d 
-dispatchCommands "deleteStation" arg _ d = do
+dispatchCommands "deleteStation" arg _ d =
     let err = "Could not delete station. Is a train passing throught this station?" 
-    id <- try $ readIO arg 
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right i -> do
-            let res = deleteStation i d
-            case res of
-                Nothing -> putStrLn err >> return d
-                Just db -> return db
-dispatchCommands "createTrain" arg _ d = do
-    res <- try $ readIO arg
-    case res of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right (name, minf, stations, css, id) -> do
+        f i = do
+                let res = deleteStation i d
+                case res of
+                    Nothing -> putStrLn err >> return d
+                    Just db -> return db
+    in
+        readOrError arg d f
+dispatchCommands "createTrain" arg _ d = 
+    let f (name, minf, stations, css, id) =
            return $ fromMaybe d $ createTrain name minf stations css id d
+    in 
+        readOrError arg d f
 dispatchCommands "listTrains" _ _ d@(_, t) = do
     putStrLn "Id\tName\tmin fee seats\tnum cars\tnum reservations"
     putStrLn "-------------------------------------------------------"
@@ -95,69 +82,48 @@ dispatchCommands "listTrains" _ _ d@(_, t) = do
                             ((length.reservations) v))
     foldlWithKey ff (return ())  t
     return d 
-dispatchCommands "deleteTrain" arg _ d = do
-    let err = "Could not delete train." 
-    id <- try $ readIO arg 
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right i -> do
+dispatchCommands "deleteTrain" arg _ d = 
+    let f i = do
             let res = deleteTrain i d
             case res of
-                Nothing -> putStrLn err >> return d
+                Nothing -> putStrLn "Could not delete train." >> return d
                 Just db -> return db
-dispatchCommands "listReservations" arg _ d@(_,t) = do
-    id <- try $ readIO arg
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right i -> do
+    in
+        readOrError arg d f
+dispatchCommands "listReservations" arg _ d@(_,t) =
+    let f i = do 
             let res = listReservations i d
             case res of
                 Nothing -> putStrLn "No such train." 
                 Just l -> printReservationInfos l 
             return d
-dispatchCommands "listReservations" arg _ d@(_,t) = do
-    id <- try $ readIO arg
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right i -> do
-            let res = listReservations i d
-            case res of
-                Nothing -> putStrLn "No such train." 
-                Just l -> printReservationInfos l 
-            return d
-dispatchCommands "listReservationsFor" arg _ d@(_,t) = do
-    id <- try $ readIO arg
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right (i,c,s) -> do
+    in
+        readOrError arg d f
+dispatchCommands "listReservationsFor" arg _ d@(_,t) = 
+    let f (i, c, s) = do
             let res = listReservationsFor i c s d
             case res of
                 Nothing -> putStrLn "No such train." 
                 Just l -> printReservationInfos l 
             return d
-dispatchCommands "deleteReservation" arg _ d = do
-    id <- try $ readIO arg
-    case id of
-        Left e -> if isUserError e then
-                    putStrLn "Syntax error!" >> return d
-                  else
-                    ioError e
-        Right (i,n) -> do
-            deleteReservation i n d
+    in
+        readOrError arg d f
+dispatchCommands "deleteReservation" arg _ d =
+    let f (i,n) = return $ deleteReservation i n d 
+    in 
+        readOrError arg d f
 dispatchCommands _ _ _ d = putStrLn 
     "No such command. Enter help for a list of commands." >> return d
+
+readOrError :: (Read a) => String -> Database -> (a -> IO Database) -> IO Database
+readOrError arg db f = do
+    ri <- try $ readIO arg
+    case ri of
+        Left e -> if isUserError e then
+                    putStrLn "Syntax error!" >> return db
+                  else
+                    ioError e
+        Right a -> f a 
 
 printReservationInfos l = 
     putStrLn "Id\trail car\tgroup size\tstart seat\tstart\tend\n" >>
