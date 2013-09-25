@@ -1,3 +1,9 @@
+{- This is the startingpoint for our program
+ - It checks if the filename for the database is 
+ - given, otherwise a small usage note is printed.
+ - If a filename is given the database is read and
+ - the main "Read Eval Print Loop" is called.
+ -}
 import ReservationDatabase
 import Repl
 import System.Environment  

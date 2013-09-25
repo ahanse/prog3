@@ -1,0 +1,29 @@
+Available commands:
+-------------------
+exit                                   Leaves the reservation manager.
+save                                   Saves the database.
+listStations                           Lists all stations.
+createStation (Name, StationId)        Creates a new station.
+deleteStation StationId                Deletes a station.
+createTrain (Name, MinFreeSeats, [StationId], [RailCarSize], TrainId)        
+                                       Creats a new train.
+deleteTrain TrainId                    Deletes a train.
+listTrains                             Lists all trains.
+makeReservation (TrainId, CarNmr., StartSet, GroupSize, StartSt., EndSt.)    
+                                       Creates a new rerservation.
+deleteReservation (TrainId, ReservationId)        
+                                       Deletes a reservation.
+listReservations TrainId               Lists all reservations for a given 
+                                       train.
+listReservationsFor (TrainId,RailCarNmr,Seat)        
+                                       Lists all reservations for a given seat 
+                                       in a train. (3.)
+showFreeSeats (TraindId, StartStationId, EndStationId)     
+                                       Shows all free seats.
+summarizeRouteReservations (StartStationId, [(TrainId, TrainsferStationId)])    
+                                       Summarizes the reservations on a given 
+                                       route. (4.)
+summarizeReservations (StartStationId, EndStationId)    
+                                       Summarizes reservation infos for a given
+                                       route.
+writeDotFile Filename                  Writes the railway network to a dot file.
