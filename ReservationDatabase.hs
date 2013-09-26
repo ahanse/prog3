@@ -23,7 +23,7 @@ module ReservationDatabase (StationId, TrainId,
                             makeReservation
                             ) where
 
-import Data.Map hiding (map, filter, foldl)
+import Data.Map hiding (map, filter, foldr)
 import qualified Data.Map as M (filter)
 import qualified Data.Set as S
 import qualified Data.Foldable as GenFold
